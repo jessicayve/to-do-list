@@ -138,12 +138,14 @@ app.delete("/users/:id", async (req: Request, res: Response) => {
     try {
         const idToDelete = req.params.id 
 
-        const userIdAlreadyExists: TUserDB[] | undefined[] = await db("users").where({id:idToDelete})
-
         if(idToDelete[1] !== "f"){
             res.status(400)
             throw new Error("id deve iniciar com a letra f")
         }
+
+        const userIdAlreadyExists: TUserDB[] | undefined[] = await db("users").where({id:idToDelete})
+
+      
 
         if(!userIdAlreadyExists){ 
             res.status(404)
@@ -165,3 +167,31 @@ app.delete("/users/:id", async (req: Request, res: Response) => {
         }
     }
 })
+
+app.get("/tasks", async (req: Request, res: Response) => {
+    try {
+        const searchTerm = req.query.q as string | undefined
+        if (searchTerm === undefined) {
+            const result = await db("tasks")
+
+            res.status(200).send(result)
+        } else {
+            const result = await db("tasks").where("title", "LIKE", `%${searchTerm}%`).orWhere("description", "LIKE", `%${searchTerm}%`)
+
+            res.status(200).send(result)
+        }
+
+    } catch (error) {
+        console.log(error)
+        if (req.statusCode === 200) {
+            res.status(500)
+        }
+        if (error instanceof Error) {
+            res.send(error.message)
+        } else {
+            res.send("Erro inesperado")
+        }
+
+    }
+})
+
