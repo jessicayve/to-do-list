@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express'
 import cors from 'cors'
 import { db } from './database/knex'
-import { TUserDB } from './types'
+import { TTaskDB, TUserDB } from './types'
 
 const app = express()
 
@@ -99,17 +99,19 @@ app.post("/users", async (req: Request, res: Response) => {
             throw new Error("'password' deve possuir entre 8 e 12 caracteres, com letras maiúsculas e minúsculas e no mínimo um número e um caractere especial")
         }
 
-        const [userIdAlreadyExists]: TUserDB[] | undefined = await db("users").where({id})
+        const [userIdAlreadyExists]: TUserDB[] | undefined = await db("users").where({ id })
 
-        if(userIdAlreadyExists){
-        res.status(400)
-        throw new Error("id ja existe")}
+        if (userIdAlreadyExists) {
+            res.status(400)
+            throw new Error("id ja existe")
+        }
 
-        const [userEmailAlreadyExists]: TUserDB[] | undefined = await db("users").where({email})
+        const [userEmailAlreadyExists]: TUserDB[] | undefined = await db("users").where({ email })
 
-        if(userEmailAlreadyExists){
-        res.status(400)
-        throw new Error("email ja existe")}
+        if (userEmailAlreadyExists) {
+            res.status(400)
+            throw new Error("email ja existe")
+        }
 
         const newUser: TUserDB = {
             id,
@@ -118,7 +120,7 @@ app.post("/users", async (req: Request, res: Response) => {
             password
         }
         await db("users").insert(newUser)
-        res.status(201).send({message: "User criado com sucesso", user: newUser})
+        res.status(201).send({ message: "User criado com sucesso", user: newUser })
 
 
     } catch (error) {
@@ -136,24 +138,24 @@ app.post("/users", async (req: Request, res: Response) => {
 
 app.delete("/users/:id", async (req: Request, res: Response) => {
     try {
-        const idToDelete = req.params.id 
+        const idToDelete = req.params.id
 
-        if(idToDelete[1] !== "f"){
+        if (idToDelete[1] !== "f") {
             res.status(400)
             throw new Error("id deve iniciar com a letra f")
         }
 
-        const userIdAlreadyExists: TUserDB[] | undefined[] = await db("users").where({id:idToDelete})
+        const userIdAlreadyExists: TUserDB[] | undefined[] = await db("users").where({ id: idToDelete })
 
-      
 
-        if(!userIdAlreadyExists){ 
+
+        if (!userIdAlreadyExists) {
             res.status(404)
             throw new Error("id não encontrado")
         }
         await db("users").del().where({ id: idToDelete })
 
-        res.status(200).send({message:"User deletado com sucesso"})
+        res.status(200).send({ message: "User deletado com sucesso" })
 
     } catch (error) {
         console.log(error)
@@ -195,3 +197,66 @@ app.get("/tasks", async (req: Request, res: Response) => {
     }
 })
 
+app.post("/tasks", async (req: Request, res: Response) => {
+    try {
+        const { id, title, description } = req.body
+
+        if (typeof id !== "string") {
+            res.status(400)
+            throw new Error("id deve ser uma string")
+        }
+
+        if (id.length < 4) {
+            res.status(400)
+            throw new Error("id deve possuir 4 caracteres")
+        }
+
+
+        if (typeof title !== "string") {
+            res.status(400)
+            throw new Error("title deve ser uma string")
+        }
+
+        if (title.length < 4) {
+            res.status(400)
+            throw new Error("title deve possuir pelo menos dois caracteres")
+        }
+
+        if (typeof description !== "string") {
+            res.status(400)
+            throw new Error("description deve ser uma string")
+        }
+
+
+
+        const [taskIdAlreadyExists]: TTaskDB[] | undefined = await db("tasks").where({ id })
+
+        if (taskIdAlreadyExists) {
+            res.status(400)
+            throw new Error("id ja existe")
+        }
+
+        const newTask = {
+            id,
+            title,
+            description,
+        }
+
+        await db("tasks").insert(newTask)
+        const [insertedTask]: TTaskDB[] = await db("tasks").where({id})
+
+        res.status(201).send({ message: "Task criada com sucesso", task: insertedTask })
+
+
+    } catch (error) {
+        console.log(error)
+        if (req.statusCode === 200) {
+            res.status(500)
+        }
+        if (error instanceof Error) {
+            res.send(error.message)
+        } else {
+            res.send("Erro inesperado")
+        }
+    }
+})
